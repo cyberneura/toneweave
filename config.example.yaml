@@ -1,0 +1,32 @@
+# Copy to ~/.config/toneweave/config.yaml. Never commit your real key.
+ai:
+  provider: openai # or openai-compatible for a compatible JSON Schema API
+  api_key: "" # alternatively set OPENAI_API_KEY in the app's environment
+  model: gpt-4.1-mini
+  base_url: https://api.openai.com/v1
+
+general:
+  clipboard_auto_paste: false
+  auto_copy_result: false # copies the first variant, including its subject
+  default_n: 3 # 1–3 variants in one structured-output request
+
+greeting:
+  enabled: true # default for the greeting / keigo switch
+  opening: 相手に合った自然な挨拶を添える
+  closing: 丁寧な結びの言葉を添える
+
+preset_prompts:
+  - name: 丁寧に
+    prompt: 礼儀正しく、落ち着いた丁寧な文体で返信する。
+  - name: カジュアルに
+    prompt: 親しみやすく自然な文体で返信する。
+  - name: 簡潔に
+    prompt: 要点を絞って短く明確に返信する。
+  - name: 熱意を伝える
+    prompt: 前向きな気持ちと熱意が伝わる文体で返信する。
+
+# Optional QueryFolio-compatible override. stdout must be a YAML mapping.
+# Mappings merge recursively; scalar values and lists replace local values.
+# Executed once with shlex arguments, no shell, and a 30-second timeout.
+# No shell expansion, pipes or redirection. Fetched override commands are ignored.
+# config_override_command: op read "op://development/toneweave/config-yaml"
