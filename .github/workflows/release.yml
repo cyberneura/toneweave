@@ -463,27 +463,26 @@ jobs:
             echo "::error::v${VERSION} should no longer be published (see the message above); leaving the draft as it is."
             exit 1
           fi
-          # 判定から公開までの間に同名 tag が別 commit で作られると、公開時に
-          # target_commitish は無視され、別 commit を指す tag で公開される。
-          # ここで tag をこの run の commit に自分で作ってしまえばその窓が閉じる。
-          # 既にある場合は 422 が返るので、向き先を確かめてから進む。
-          if gh api -X POST "repos/${GH_REPO}/git/refs" \
-              -f ref="refs/tags/v${VERSION}" -f sha="${GITHUB_SHA}" --silent 2>/dev/null; then
-            echo "Created tag v${VERSION} at ${GITHUB_SHA}."
-          else
-            # 既存 tag の向き先。annotated tag は 1 段解決する
-            object=$(gh api "repos/${GH_REPO}/git/ref/tags/v${VERSION}" --jq '"\(.object.type) \(.object.sha)"')
-            case "$object" in
-              tag\ *) tag_sha=$(gh api "repos/${GH_REPO}/git/tags/${object#tag }" --jq '.object.sha') ;;
-              *) tag_sha="${object#* }" ;;
-            esac
-            if [ "$tag_sha" != "$GITHUB_SHA" ]; then
-              echo "::error::tag v${VERSION} exists at ${tag_sha}, not ${GITHUB_SHA}. Not publishing."
-              exit 1
-            fi
-            echo "Tag v${VERSION} already points at ${GITHUB_SHA}."
-          fi
+          # tag は draft を公開する時に GitHub が target_commitish に作る。ここで
+          # 先回りして作ってはいけない: v0.1.0 で実際にやったところ、公開された
+          # Release の tag が v0.1.0 ではなく untagged-<hash> になり、同名の git tag まで
+          # 作られた (Release の URL が /download/v0.1.0/... にならず配布が壊れる)。
+          # 「判定から公開までの間に同名 tag が別 commit で作られる」競合は
+          # release-decide.sh の tag 検証で捕まえる (公開直前にも再判定している)。
           gh api -X PATCH "repos/${GH_REPO}/releases/${RELEASE_ID}" \
             -F draft=false -f make_latest=true \
             -f target_commitish="${GITHUB_SHA}" --silent
+
+          # 判定から上の PATCH までの隙間に誰かが tag を作ると、公開時に tag 名が
+          # untagged-<hash> に差し替わる。先回りして tag を作る対策は正常系を壊すので
+          # (この step の上のコメント参照)、公開後に読み戻して検出する。
+          # 自動修復はしない: その tag が別 commit を指している可能性があり、
+          # tag_name を戻すと誤った commit の tag に Release を結び付けてしまう。
+          published=$(gh api "repos/${GH_REPO}/releases/${RELEASE_ID}" --jq '.tag_name')
+          if [ "$published" != "v${VERSION}" ]; then
+            echo "::error::release ${RELEASE_ID} was published as '${published}', not 'v${VERSION}'. A tag was created during publication. Check where v${VERSION} points, then fix the release's tag_name and delete the stray tag."
+            exit 1
+          fi
+          echo "Published v${VERSION} (release ${RELEASE_ID})."
+
 
