@@ -89,6 +89,7 @@ rm -rf $ICONS/android $ICONS/ios
 - Bump the version only with `pnpm release` as its own commit. Never mix a version bump into a feature change: merging it publishes a release.
 - CI signs with Developer ID and notarizes the macOS build. The build fails if any of these repository secrets is missing: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`.
 - Keep `signingIdentity: "-"` in `tauri.conf.json` (ad-hoc for local builds; CI overrides it through env).
-- The Homebrew cask will be `Casks/toneweave.rb` in `cyberneura/homebrew-tap`. It does not exist yet: write it by hand once the first release is published, from that release's dmg. After that the tap's own workflow updates `version` and `sha256` every hour. This repository never pushes to the tap.
+- The Homebrew cask is `Casks/toneweave.rb` in `cyberneura/homebrew-tap`. The tap's own workflow updates its `version` and `sha256` every hour from the latest release. This repository never pushes to the tap.
 - Never use "Re-run failed jobs" on an older run once a newer run for the same version exists: the old run would publish its own (older) commit's build. Push a fix, or bump the version, and let a fresh run do it.
+- Never create the `v<version>` tag yourself. GitHub creates it when the draft is published; if the tag already exists, the release is published as `untagged-<hash>` instead and the `/download/v<version>/...` URLs break. `release-decide.sh` refuses to release while such a tag exists.
 - All `uses:` in the workflow are pinned to commit SHAs. Keep them pinned.

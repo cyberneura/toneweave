@@ -4,8 +4,6 @@ Desktop app that drafts email replies with an LLM. Paste the email you received,
 
 ## Install
 
-> No release has been published yet. Until the first one, build from source (see [Development](#development)). The instructions below apply from the first release on.
-
 macOS (Apple Silicon / Intel):
 
 ```bash
@@ -78,7 +76,7 @@ toneweave reply --clipboard
 toneweave --help
 ```
 
-With no arguments, the desktop app opens. The CLI is the executable inside the app bundle (`Toneweave.app/Contents/MacOS/`); it is not added to `PATH` automatically.
+With no arguments, the desktop app opens. Installing the cask puts `toneweave` on your `PATH`; otherwise the executable is inside the app bundle at `Toneweave.app/Contents/MacOS/toneweave`.
 
 ## Development
 
@@ -94,7 +92,7 @@ pnpm tauri build    # local build (ad-hoc signed)
 
 ## Release
 
-The version in `src-tauri/tauri.conf.json` on `main` decides the release. When an unreleased version reaches `main`, GitHub Actions tests, builds a signed and notarized universal `.dmg` and a Windows `.exe`, and publishes a GitHub Release. Once `Casks/toneweave.rb` exists in the [Homebrew tap](https://github.com/cyberneura/homebrew-tap), the tap picks up each new release within an hour.
+The version in `src-tauri/tauri.conf.json` on `main` decides the release. When an unreleased version reaches `main`, GitHub Actions tests, builds a signed and notarized universal `.dmg` and a Windows `.exe`, and publishes a GitHub Release. The [Homebrew tap](https://github.com/cyberneura/homebrew-tap) picks up each new release within an hour.
 
 ```bash
 pnpm release          # patch (default)
