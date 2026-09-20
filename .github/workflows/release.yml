@@ -473,3 +473,16 @@ jobs:
             -F draft=false -f make_latest=true \
             -f target_commitish="${GITHUB_SHA}" --silent
 
+          # 判定から上の PATCH までの隙間に誰かが tag を作ると、公開時に tag 名が
+          # untagged-<hash> に差し替わる。先回りして tag を作る対策は正常系を壊すので
+          # (この step の上のコメント参照)、公開後に読み戻して検出する。
+          # 自動修復はしない: その tag が別 commit を指している可能性があり、
+          # tag_name を戻すと誤った commit の tag に Release を結び付けてしまう。
+          published=$(gh api "repos/${GH_REPO}/releases/${RELEASE_ID}" --jq '.tag_name')
+          if [ "$published" != "v${VERSION}" ]; then
+            echo "::error::release ${RELEASE_ID} was published as '${published}', not 'v${VERSION}'. A tag was created during publication. Check where v${VERSION} points, then fix the release's tag_name and delete the stray tag."
+            exit 1
+          fi
+          echo "Published v${VERSION} (release ${RELEASE_ID})."
+
+
