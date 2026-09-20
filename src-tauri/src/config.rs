@@ -9,6 +9,7 @@ pub struct Config {
     pub general: General,
     pub greeting: Greeting,
     pub preset_prompts: Vec<Preset>,
+    pub decorations: Vec<Decoration>,
 }
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
@@ -24,7 +25,7 @@ impl Default for Ai {
         Self {
             provider: "openai".into(),
             api_key: String::new(),
-            model: "gpt-4.1-mini".into(),
+            model: "gpt-5.6-terra".into(),
             base_url: "https://api.openai.com/v1".into(),
         }
     }
@@ -41,7 +42,7 @@ impl Default for General {
         Self {
             clipboard_auto_paste: false,
             auto_copy_result: false,
-            default_n: 3,
+            default_n: 1,
         }
     }
 }
@@ -67,6 +68,14 @@ pub struct Preset {
     pub name: String,
     pub prompt: String,
 }
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Decoration {
+    pub title: String,
+    pub context: String,
+    #[serde(default)]
+    pub group: Option<String>,
+}
 pub fn presets() -> Vec<Preset> {
     [
         ("丁寧に", "礼儀正しく、落ち着いた丁寧な文体で返信する。"),
@@ -88,6 +97,49 @@ pub fn directory() -> Result<PathBuf, String> {
     dirs::home_dir()
         .map(|p| p.join(".config/toneweave"))
         .ok_or_else(|| "Cannot locate your home directory.".into())
+}
+const EXAMPLE: &str = include_str!("../../config.example.yaml");
+
+/// Writes the example config when none exists yet. Returns true when a file was created.
+pub fn create_example_at(path: &std::path::Path) -> Result<bool, String> {
+    if let Some(parent) = path.parent() {
+        let mut builder = std::fs::DirBuilder::new();
+        builder.recursive(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            builder.mode(0o700);
+        }
+        builder
+            .create(parent)
+            .map_err(|_| "Could not create the config directory.".to_string())?;
+    }
+    let mut options = std::fs::OpenOptions::new();
+    // create_new: 既存の設定を絶対に上書きしない (存在確認と作成の間の競合も含めて)
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        // API キーを書き込むファイルなので所有者だけが読めるようにする
+        options.mode(0o600);
+    }
+    match options.open(path) {
+        Ok(mut file) => {
+            use std::io::Write;
+            // 書き込みに失敗したら消す。残すと create_new が以後 AlreadyExists を返し、
+            // 切れた設定ファイルのまま二度と作り直されない
+            if file.write_all(EXAMPLE.as_bytes()).is_err() {
+                let _ = std::fs::remove_file(path);
+                return Err("Could not write the example config.".into());
+            }
+            Ok(true)
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(false),
+        Err(_) => Err("Could not create the example config.".into()),
+    }
+}
+pub fn create_example() -> Result<bool, String> {
+    create_example_at(&directory()?.join("config.yaml"))
 }
 pub fn merge(base: &mut Value, over: Value) {
     match (base, over) {
@@ -206,6 +258,18 @@ impl Config {
                 );
             }
         }
+        let mut titles = std::collections::HashSet::new();
+        for decoration in &self.decorations {
+            if decoration.title.trim().is_empty()
+                || decoration.context.trim().is_empty()
+                || !titles.insert(&decoration.title)
+            {
+                return Err(
+                    "Decoration titles must be unique and titles/contexts must not be empty."
+                        .into(),
+                );
+            }
+        }
         Ok(())
     }
 }
@@ -232,6 +296,20 @@ mod tests {
         assert_eq!(v["value"].as_str(), Some("$(echo secret) | cat"));
         assert!(override_yaml("/bin/echo '").await.is_err());
         assert!(override_yaml("/usr/bin/false").await.is_err());
+    }
+    #[tokio::test]
+    async fn example_is_created_once_and_loads() {
+        let dir = std::env::temp_dir().join(format!("toneweave-example-{}", std::process::id()));
+        let path = dir.join("config.yaml");
+        assert!(create_example_at(&path).unwrap());
+        std::fs::write(&path, "general:\n  default_n: 2\n").unwrap();
+        assert!(!create_example_at(&path).unwrap());
+        assert_eq!(load_path(&path).await.unwrap().general.default_n, 2);
+        std::fs::remove_file(&path).unwrap();
+        create_example_at(&path).unwrap();
+        let config = load_path(&path).await.unwrap();
+        assert!(!config.decorations.is_empty());
+        let _ = std::fs::remove_dir_all(dir);
     }
     #[test]
     fn secrets_are_never_serialized() {

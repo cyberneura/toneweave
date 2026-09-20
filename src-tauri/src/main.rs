@@ -1,6 +1,7 @@
 mod ai;
 mod cli;
 mod config;
+mod draft;
 mod results;
 use serde::Serialize;
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -40,9 +41,23 @@ async fn generate_reply(
     direction: String,
     preset: String,
     greeting: bool,
+    n: Option<usize>,
+    decorations: Option<Vec<String>>,
 ) -> Result<Generation, String> {
-    let config = config::load().await?;
-    let replies = ai::generate(&config, &source, &direction, &preset, greeting).await?;
+    let mut config = config::load().await?;
+    if let Some(n) = n {
+        config.general.default_n = n;
+        config.validate()?;
+    }
+    let replies = ai::generate(
+        &config,
+        &source,
+        &direction,
+        &preset,
+        greeting,
+        &decorations.unwrap_or_default(),
+    )
+    .await?;
     let mut warnings = Vec::new();
     let saved_to = match results::save(&replies) {
         Ok(path) => Some(path),
@@ -75,6 +90,18 @@ fn copy_to_clipboard(app: tauri::AppHandle, text: String) -> Result<(), String> 
         .write_text(text)
         .map_err(|_| "Could not copy text to the clipboard.".into())
 }
+#[tauri::command]
+fn save_draft(content: String) -> Result<(), String> {
+    draft::save(&content)
+}
+#[tauri::command]
+fn load_draft() -> Option<String> {
+    draft::load()
+}
+#[tauri::command]
+fn clear_draft() -> Result<(), String> {
+    draft::clear()
+}
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -88,7 +115,10 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             generate_reply,
             get_config,
-            copy_to_clipboard
+            copy_to_clipboard,
+            save_draft,
+            load_draft,
+            clear_draft
         ]);
 
     let app = builder.build(tauri::generate_context!()).unwrap_or_else(|e| {
@@ -109,6 +139,9 @@ fn main() {
             std::process::exit(1);
         }
     } else {
+        if let Err(e) = config::create_example() {
+            eprintln!("{e}");
+        }
         app.run(|_app, _event| {});
     }
 }

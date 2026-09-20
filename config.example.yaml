@@ -1,14 +1,16 @@
-# Copy to ~/.config/toneweave/config.yaml. Never commit your real key.
+# Toneweave settings. The app creates this file at ~/.config/toneweave/config.yaml on
+# first launch and never overwrites it. Edit it, then press Reload in the app.
+# It holds your API key: keep it to yourself.
 ai:
   provider: openai # or openai-compatible for a compatible JSON Schema API
   api_key: "" # alternatively set OPENAI_API_KEY in the app's environment
-  model: gpt-4.1-mini
+  model: gpt-5.6-terra
   base_url: https://api.openai.com/v1
 
 general:
   clipboard_auto_paste: false
   auto_copy_result: false # copies the first variant, including its subject
-  default_n: 3 # 1–3 variants in one structured-output request
+  default_n: 1 # initial variant count (1–3); changeable in the app
 
 greeting:
   enabled: true # default for the greeting / keigo switch
@@ -25,7 +27,21 @@ preset_prompts:
   - name: 熱意を伝える
     prompt: 前向きな気持ちと熱意が伝わる文体で返信する。
 
-# Optional QueryFolio-compatible override. stdout must be a YAML mapping.
+# Toggle buttons shown under Decorations. Each enabled context is added to the prompt.
+# Decorations sharing the same optional group are mutually exclusive.
+decorations:
+  - title: "お世話: 会社A"
+    context: "「いつもお世話になっております。<会社A> <あなたの名前>です。」を追加"
+    group: opening
+  - title: "お世話: 会社B"
+    context: "「いつもお世話になっております。<会社B> <あなたの名前>です。」を追加"
+    group: opening
+  - title: "お世話: 名前のみ"
+    context: "「いつもお世話になっております。<あなたの名前>です。」を追加"
+    group: opening
+
+# Optional: run a command and merge its stdout (a YAML mapping) over this file,
+# e.g. to keep the API key in a password manager instead of on disk.
 # Mappings merge recursively; scalar values and lists replace local values.
 # Executed once with shlex arguments, no shell, and a 30-second timeout.
 # No shell expansion, pipes or redirection. Fetched override commands are ignored.

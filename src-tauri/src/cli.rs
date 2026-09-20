@@ -1,12 +1,13 @@
 use std::io::{IsTerminal, Read};
 use tauri_plugin_clipboard_manager::ClipboardExt;
-pub const HELP: &str = "Toneweave — thoughtful email replies\n\nUsage: toneweave [reply OPTIONS]\n\n  reply                 Compose from stdin (or --clipboard)\n  --clipboard           Read source from the system clipboard\n  --direction, -d TEXT  How to reply\n  --preset, -p NAME     Configured tone preset\n  --greeting, -g on|off Override greeting / keigo mode\n  --help, -h            Show help\n\nNo arguments opens the desktop app. Results go to ~/.config/toneweave/results/.\nExample: toneweave reply --clipboard -d \"やんわり断る\" -g on";
+pub const HELP: &str = "Toneweave — thoughtful email replies\n\nUsage: toneweave [reply OPTIONS]\n\n  reply                 Compose from stdin (or --clipboard)\n  --clipboard           Read source from the system clipboard\n  --direction, -d TEXT  How to reply\n  --preset, -p NAME     Configured tone preset\n  --greeting, -g on|off Override greeting / keigo mode\n  --decoration, -D TITLE  Apply a configured decoration (repeatable)\n  --help, -h            Show help\n\nNo arguments opens the desktop app. Results go to ~/.config/toneweave/results/.\nExample: toneweave reply --clipboard -d \"やんわり断る\" -g on";
 #[derive(Default, Debug, PartialEq)]
 pub struct Args {
     pub clipboard: bool,
     pub direction: String,
     pub preset: String,
     pub greeting: Option<bool>,
+    pub decorations: Vec<String>,
 }
 pub fn parse(args: &[String]) -> Result<Args, String> {
     if args.first().map(String::as_str) != Some("reply") {
@@ -30,6 +31,9 @@ pub fn parse(args: &[String]) -> Result<Args, String> {
                     _ => return Err("Greeting must be on or off.".into()),
                 })
             }
+            "--decoration" | "-D" => result
+                .decorations
+                .push(args.next().ok_or("Missing decoration title.")?.clone()),
             _ => return Err(format!("Unknown option: {arg}")),
         }
     }
@@ -58,6 +62,7 @@ pub async fn run(app: &tauri::App, args: Args) -> Result<(), String> {
         &args.direction,
         &args.preset,
         args.greeting.unwrap_or(config.greeting.enabled),
+        &args.decorations,
     )
     .await?;
     // Print drafts even if local persistence or clipboard fails; never lose a successful response.
