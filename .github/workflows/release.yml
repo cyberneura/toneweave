@@ -468,7 +468,12 @@ jobs:
               -f ref="refs/tags/v${VERSION}" -f sha="${GITHUB_SHA}" --silent 2>/dev/null; then
             echo "Created tag v${VERSION} at ${GITHUB_SHA}."
           else
-            tag_sha=$(gh api "repos/${GH_REPO}/commits/v${VERSION}" --jq '.sha')
+            # 既存 tag の向き先。annotated tag は 1 段解決する
+            object=$(gh api "repos/${GH_REPO}/git/ref/tags/v${VERSION}" --jq '"\(.object.type) \(.object.sha)"')
+            case "$object" in
+              tag\ *) tag_sha=$(gh api "repos/${GH_REPO}/git/tags/${object#tag }" --jq '.object.sha') ;;
+              *) tag_sha="${object#* }" ;;
+            esac
             if [ "$tag_sha" != "$GITHUB_SHA" ]; then
               echo "::error::tag v${VERSION} exists at ${tag_sha}, not ${GITHUB_SHA}. Not publishing."
               exit 1

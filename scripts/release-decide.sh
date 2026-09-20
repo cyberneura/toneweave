@@ -24,6 +24,16 @@ http_status() {
   gh api "$1" --silent --include 2>/dev/null | head -n 1 | awk '{print $2}' || true
 }
 
+# tag が指す commit。annotated tag は tag オブジェクトを挟むので 1 段解決する
+tag_commit() {
+  local object
+  object=$(gh api "repos/${GH_REPO}/git/ref/tags/$1" --jq '"\(.object.type) \(.object.sha)"')
+  case "$object" in
+    tag\ *) gh api "repos/${GH_REPO}/git/tags/${object#tag }" --jq '.object.sha' ;;
+    *) echo "${object#* }" ;;
+  esac
+}
+
 # 訊きたいのは「公開済みか」。draft は未リリースとして扱う: 失敗した run が残した
 # draft は同じ version で再実行して埋め直すし、publish はビルドが作った draft を
 # 前にしてこの判定を呼ぶ。このエンドポイントは draft に 404 を返す (ドキュメントは
@@ -58,12 +68,14 @@ esac
 # 別 commit を指す tag で公開される。GitHub API に tag を貼り替える手段は無いので、
 # 食い違うなら止めて人間に判断させる (tag を消すか version を上げる)。
 # /commits/<ref> は annotated tag も commit まで解決する。
+# 不在を 404 で返すのは tag ref API。/commits/<ref> は解決できない ref に 422 を返すので、
+# 「tag が無い」を「判定不能」と誤読して初回リリースが必ず止まる (実測済み)。
 if [ -n "${GITHUB_SHA:-}" ]; then
-  status=$(http_status "repos/${GH_REPO}/commits/v${VERSION}")
+  status=$(http_status "repos/${GH_REPO}/git/ref/tags/v${VERSION}")
   case "$status" in
     404) ;;
     200)
-      tag_sha=$(gh api "repos/${GH_REPO}/commits/v${VERSION}" --jq '.sha')
+      tag_sha=$(tag_commit "v${VERSION}")
       if [ "$tag_sha" != "$GITHUB_SHA" ]; then
         echo "::error::tag v${VERSION} already exists and points at ${tag_sha}, not ${GITHUB_SHA}. Delete the tag or bump the version." >&2
         exit 1
