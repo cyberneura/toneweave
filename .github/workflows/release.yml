@@ -463,26 +463,12 @@ jobs:
             echo "::error::v${VERSION} should no longer be published (see the message above); leaving the draft as it is."
             exit 1
           fi
-          # 判定から公開までの間に同名 tag が別 commit で作られると、公開時に
-          # target_commitish は無視され、別 commit を指す tag で公開される。
-          # ここで tag をこの run の commit に自分で作ってしまえばその窓が閉じる。
-          # 既にある場合は 422 が返るので、向き先を確かめてから進む。
-          if gh api -X POST "repos/${GH_REPO}/git/refs" \
-              -f ref="refs/tags/v${VERSION}" -f sha="${GITHUB_SHA}" --silent 2>/dev/null; then
-            echo "Created tag v${VERSION} at ${GITHUB_SHA}."
-          else
-            # 既存 tag の向き先。annotated tag は 1 段解決する
-            object=$(gh api "repos/${GH_REPO}/git/ref/tags/v${VERSION}" --jq '"\(.object.type) \(.object.sha)"')
-            case "$object" in
-              tag\ *) tag_sha=$(gh api "repos/${GH_REPO}/git/tags/${object#tag }" --jq '.object.sha') ;;
-              *) tag_sha="${object#* }" ;;
-            esac
-            if [ "$tag_sha" != "$GITHUB_SHA" ]; then
-              echo "::error::tag v${VERSION} exists at ${tag_sha}, not ${GITHUB_SHA}. Not publishing."
-              exit 1
-            fi
-            echo "Tag v${VERSION} already points at ${GITHUB_SHA}."
-          fi
+          # tag は draft を公開する時に GitHub が target_commitish に作る。ここで
+          # 先回りして作ってはいけない: v0.1.0 で実際にやったところ、公開された
+          # Release の tag が v0.1.0 ではなく untagged-<hash> になり、同名の git tag まで
+          # 作られた (Release の URL が /download/v0.1.0/... にならず配布が壊れる)。
+          # 「判定から公開までの間に同名 tag が別 commit で作られる」競合は
+          # release-decide.sh の tag 検証で捕まえる (公開直前にも再判定している)。
           gh api -X PATCH "repos/${GH_REPO}/releases/${RELEASE_ID}" \
             -F draft=false -f make_latest=true \
             -f target_commitish="${GITHUB_SHA}" --silent
