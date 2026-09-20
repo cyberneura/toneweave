@@ -75,11 +75,12 @@ if [ -n "${GITHUB_SHA:-}" ]; then
   case "$status" in
     404) ;;
     200)
+      # 向き先が一致していても通さない。未公開 version の tag が既にある状態で draft を
+      # 公開すると、GitHub は tag 名を untagged-<hash> に差し替えてしまい、
+      # /download/v<version>/... の配布 URL が成立しなくなる (v0.1.0 で実際に発生した)。
       tag_sha=$(tag_commit "v${VERSION}")
-      if [ "$tag_sha" != "$GITHUB_SHA" ]; then
-        echo "::error::tag v${VERSION} already exists and points at ${tag_sha}, not ${GITHUB_SHA}. Delete the tag or bump the version." >&2
-        exit 1
-      fi
+      echo "::error::tag v${VERSION} already exists (at ${tag_sha}) for an unreleased version. Publishing would produce an untagged release. Delete the tag, or bump the version." >&2
+      exit 1
       ;;
     *)
       echo "::error::could not tell whether tag v${VERSION} exists (HTTP ${status:-none}). Not guessing." >&2
