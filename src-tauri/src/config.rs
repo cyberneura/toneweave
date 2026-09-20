@@ -288,6 +288,9 @@ mod tests {
         assert_eq!(base["ai"]["model"].as_str(), Some("new"));
         assert_eq!(base["preset_prompts"].as_sequence().unwrap().len(), 1);
     }
+    // 絶対パスの Unix コマンドを起動して確かめるテストなので Windows では動かない。
+    // 検証している「shlex で分割し、シェルを通さない」性質自体は OS に依らない
+    #[cfg(unix)]
     #[tokio::test]
     async fn override_is_not_shell() {
         let v = override_yaml("/usr/bin/printf 'value: \"$(echo secret) | cat\"'")
