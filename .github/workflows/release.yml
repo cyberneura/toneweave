@@ -398,6 +398,9 @@ jobs:
       # (publish の再判定が止める時点では既にアップロード済み)。上げる前に、その
       # Release がまだ draft で、この run の commit を指していることを確かめる。
       - name: Check the draft release still belongs to this run
+        # Windows ランナーの既定シェルは PowerShell なので、bash を明示しないと
+        # この step だけ ParserError で落ちる (matrix の Windows leg で実際に落ちた)
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
