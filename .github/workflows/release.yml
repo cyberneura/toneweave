@@ -183,6 +183,21 @@ jobs:
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
+      # THIRD-PARTY-NOTICES.txt が依存 (Cargo.lock / pnpm-lock.yaml) と一致するかを、生成し直して
+      # 比べる。cargo test は直接依存しか見られず、依存の更新で推移依存だけが増えた時の
+      # 再生成漏れを見逃すため。about.toml の targets が固定なので、どの OS で生成しても同じ
+      # 結果になる。1 つの OS で見れば足りるので macOS だけで流す。
+      # cargo-about はビルド済みバイナリを入れる (cargo install だと数分かかる)。出力の書式が
+      # 版で変わりうるので、ローカルで生成に使った版に固定する。
+      - name: Install cargo-about
+        if: runner.os == 'macOS'
+        uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
+        with:
+          tool: cargo-about@0.9.2
+      - name: Check THIRD-PARTY-NOTICES.txt is up to date
+        if: runner.os == 'macOS'
+        run: bash scripts/generate-third-party-notices.sh --check
+
   # matrix の全ジョブが成果物を上げる先の draft Release を、ビルドの前に 1 つだけ用意する。
   #
   # tauri-action に tagName だけを渡すと、各ジョブがビルド後に「その tag の Release を

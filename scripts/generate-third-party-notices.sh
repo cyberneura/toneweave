@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 配布物に含まれる依存ライブラリのライセンスを THIRD-PARTY-NOTICES.txt に書き出す。
 # `pnpm notices` から呼ばれる。依存を足したり上げたりしたら流し直してコミットする
-# (main.rs のテストが、直接依存がこのファイルに載っているかを見る)。
+# (licenses.rs のテストが直接依存を、CI の --check が全体を検査する)。
 #
 # Rust 側は cargo-about (`cargo install cargo-about --locked --features cli`)、
 # 設定は src-tauri/about.toml、書式は src-tauri/about.hbs。
@@ -13,7 +13,21 @@
 #     (`vite build --minify false` の出力で確認した)。svelte の esm-env は定数だけで
 #     tree-shake されて残らないので載せない
 # devDependencies のビルドツール (vite / tailwindcss 等) は配布物に入らないので載せない。
+#
+# --check: 書き換えずに、生成結果がコミット済みのファイルと一致するかだけを見る (違えば exit 1)。
+# CI (release.yml の test ジョブ) が流す。main.rs 側のテストは直接依存しか見られないので、
+# 依存の更新で推移依存だけが増えた時の再生成漏れはこちらで捕まえる。
 set -euo pipefail
+
+CHECK=0
+case "${1:-}" in
+  "") ;;
+  --check) CHECK=1 ;;
+  *)
+    echo "Usage: $0 [--check]" >&2
+    exit 2
+    ;;
+esac
 
 cd "$(dirname "$0")/.."
 
@@ -99,6 +113,15 @@ HEADER
   # --fail: ライセンスを特定できない crate があれば警告で省略せず失敗させる
   cargo about generate --manifest-path src-tauri/Cargo.toml --locked --fail src-tauri/about.hbs
 } > "$TMP"
+
+if [ "$CHECK" = 1 ]; then
+  if ! diff -u "$OUT" "$TMP"; then
+    echo "Error: $OUT is out of date. Run 'pnpm notices' and commit the result." >&2
+    exit 1
+  fi
+  echo "$OUT is up to date"
+  exit 0
+fi
 
 mv "$TMP" "$OUT"
 echo "Wrote $OUT ($(wc -l < "$OUT" | tr -d ' ') lines)"

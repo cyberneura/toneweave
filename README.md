@@ -123,4 +123,4 @@ pnpm install
 pnpm notices        # scripts/generate-third-party-notices.sh
 ```
 
-`pnpm test` fails when the file is out of date with `Cargo.lock` or `pnpm-lock.yaml`.
+`pnpm test` and the PR CI (`scripts/generate-third-party-notices.sh --check`) fail when the file is out of date.
