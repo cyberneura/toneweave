@@ -445,6 +445,11 @@
       </div>
       <div class="flex justify-end border-t border-line px-4 py-3">
         <button
+          class="mr-auto h-7 rounded-md px-2 text-[12px] text-muted hover:bg-hover hover:text-fg"
+          data-annotate="button-third-party-licenses-apikey"
+          onclick={() => showLicenses().catch((e) => (error = String(e)))}
+        >Third-Party Licenses</button>
+        <button
           class="flex h-7 items-center gap-1.5 rounded-md bg-accent px-3 text-[12px] font-medium text-on-accent hover:bg-accent-hover"
           data-annotate="button-reload-apikey"
           disabled={initializing}

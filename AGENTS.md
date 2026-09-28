@@ -74,7 +74,7 @@ Run `pnpm check` and `pnpm test` after changes. Restart `pnpm tauri dev` after c
 - **Whenever you add, remove or upgrade a dependency (Cargo.toml / package.json / either lockfile), run `pnpm notices` and commit the result.** Dependabot PRs do not do this. The tests in `licenses.rs` check the direct dependencies, and the macOS test job in `release.yml` regenerates the whole file with cargo-about 0.9.2 (`scripts/generate-third-party-notices.sh --check`) and fails on any difference. Generate locally with the same cargo-about version.
 - cargo-about only covers the shipped targets (`about.toml` `targets`: macOS arm64 / x64, Windows x64). Do not add a license to `accepted` without checking it; stop and ask for GPL / LGPL / AGPL.
 - The JavaScript section is `package.json` `dependencies` plus the Svelte runtime (`svelte`, and `clsx` which it imports), because those are bundled even though `svelte` is a devDependency. If another devDependency starts shipping in the bundle, add it to `BUNDLED_RUNTIME` in the script and to the lists in the `licenses.rs` tests.
-- The app shows the text in the macOS app menu (right below About), in Settings, and through `toneweave --license`. `LICENSE` is embedded too, because the `.app` / installer do not contain it.
+- The app shows the text in the macOS app menu (right below About), in Settings (and in the API-key dialog, which blocks Settings on a fresh install), and through `toneweave --license`. `LICENSE` is embedded too, because the `.app` / installer do not contain it.
 
 ## LLM model names
 

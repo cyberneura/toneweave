@@ -112,7 +112,7 @@ MIT. See [LICENSE](LICENSE).
 The app bundles open source libraries (Rust crates and JavaScript packages). Their licenses are listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which is also embedded in the app:
 
 - macOS: **Toneweave → Third-Party Licenses** in the menu bar (right below About Toneweave)
-- macOS and Windows: **Settings → Third-Party Licenses**
+- macOS and Windows: **Settings → Third-Party Licenses** (before an API key is set, the same button is in the "API key is not set" dialog)
 - CLI: `toneweave --license`
 
 The file is generated. After adding or upgrading a dependency, regenerate and commit it:
