@@ -13,6 +13,9 @@
 #     (`vite build --minify false` の出力で確認した)。svelte の esm-env は定数だけで
 #     tree-shake されて残らないので載せない
 # devDependencies のビルドツール (vite / tailwindcss 等) は配布物に入らないので載せない。
+# vite は既定で modulepreload の polyfill を各エントリーに注入するが、vite.config.ts の
+# build.modulePreload.polyfill: false で止めてある (動的 import も無いので __vitePreload も
+# 入らない)。これを戻すか動的 import を足すなら vite を BUNDLED_RUNTIME に加えること。
 #
 # --check: 書き換えずに、生成結果がコミット済みのファイルと一致するかだけを見る (違えば exit 1)。
 # CI (release.yml の test ジョブ) が流す。main.rs 側のテストは直接依存しか見られないので、
