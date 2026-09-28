@@ -3,7 +3,10 @@ name = "toneweave"
 version = "0.1.0"
 description = "Thoughtful email replies, in your voice"
 authors = ["Cyberneura"]
+license = "MIT"
 edition = "2021"
+# crates.io には出さない。cargo-about が自分自身を THIRD-PARTY-NOTICES.txt に載せないためにも要る
+publish = false
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

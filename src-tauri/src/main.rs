@@ -2,6 +2,7 @@ mod ai;
 mod cli;
 mod config;
 mod draft;
+mod licenses;
 mod results;
 use serde::Serialize;
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -109,6 +110,10 @@ fn main() {
         println!("{}", cli::HELP);
         return;
     }
+    if args.iter().any(|a| a == "--license") {
+        print!("{}", licenses::text());
+        return;
+    }
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -118,8 +123,20 @@ fn main() {
             copy_to_clipboard,
             save_draft,
             load_draft,
-            clear_draft
-        ]);
+            clear_draft,
+            licenses::third_party_notices,
+            licenses::show_licenses,
+            licenses::licenses_window_ready
+        ])
+        .on_menu_event(|app, event| {
+            if event.id() == licenses::MENU_ID {
+                if let Err(e) = licenses::show_window(app) {
+                    eprintln!("Failed to open the Third-Party Licenses window: {e}");
+                }
+            }
+        });
+    #[cfg(target_os = "macos")]
+    let builder = builder.menu(licenses::app_menu);
 
     let app = builder.build(tauri::generate_context!()).unwrap_or_else(|e| {
         eprintln!("Failed to build Toneweave app: {e}");

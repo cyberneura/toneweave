@@ -1,6 +1,6 @@
 use std::io::{IsTerminal, Read};
 use tauri_plugin_clipboard_manager::ClipboardExt;
-pub const HELP: &str = "Toneweave — thoughtful email replies\n\nUsage: toneweave [reply OPTIONS]\n\n  reply                 Compose from stdin (or --clipboard)\n  --clipboard           Read source from the system clipboard\n  --direction, -d TEXT  How to reply\n  --preset, -p NAME     Configured tone preset\n  --greeting, -g on|off Override greeting / keigo mode\n  --decoration, -D TITLE  Apply a configured decoration (repeatable)\n  --help, -h            Show help\n\nNo arguments opens the desktop app. Results go to ~/.config/toneweave/results/.\nExample: toneweave reply --clipboard -d \"やんわり断る\" -g on";
+pub const HELP: &str = "Toneweave — thoughtful email replies\n\nUsage: toneweave [reply OPTIONS]\n\n  reply                 Compose from stdin (or --clipboard)\n  --clipboard           Read source from the system clipboard\n  --direction, -d TEXT  How to reply\n  --preset, -p NAME     Configured tone preset\n  --greeting, -g on|off Override greeting / keigo mode\n  --decoration, -D TITLE  Apply a configured decoration (repeatable)\n  --help, -h            Show help\n  --license             Show the license and third-party licenses\n\nNo arguments opens the desktop app. Results go to ~/.config/toneweave/results/.\nExample: toneweave reply --clipboard -d \"やんわり断る\" -g on";
 #[derive(Default, Debug, PartialEq)]
 pub struct Args {
     pub clipboard: bool,

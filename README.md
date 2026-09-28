@@ -74,6 +74,7 @@ decorations:
 pbpaste | toneweave reply -d "やんわり断る" -p 丁寧に -g on -D "お世話: 会社A"
 toneweave reply --clipboard
 toneweave --help
+toneweave --license   # print the license and third-party licenses
 ```
 
 With no arguments, the desktop app opens. Installing the cask puts `toneweave` on your `PATH`; otherwise the executable is inside the app bundle at `Toneweave.app/Contents/MacOS/toneweave`.
@@ -101,3 +102,25 @@ pnpm release major
 ```
 
 `pnpm release` bumps the version, commits, pushes to `main` and watches the workflow.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+## Third-party licenses
+
+The app bundles open source libraries (Rust crates and JavaScript packages). Their licenses are listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which is also embedded in the app:
+
+- macOS: **Toneweave → Third-Party Licenses** in the menu bar (right below About Toneweave)
+- macOS and Windows: **Settings → Third-Party Licenses**
+- CLI: `toneweave --license`
+
+The file is generated. After adding or upgrading a dependency, regenerate and commit it:
+
+```bash
+cargo install cargo-about --locked --features cli   # once
+pnpm install
+pnpm notices        # scripts/generate-third-party-notices.sh
+```
+
+`pnpm test` fails when the file is out of date with `Cargo.lock` or `pnpm-lock.yaml`.

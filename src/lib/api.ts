@@ -42,3 +42,4 @@ export async function loadDraft(): Promise<Partial<Draft> | null> {
     return null;
   }
 }
+export const showLicenses = () => desktop ? invoke<void>('show_licenses') : Promise.resolve();

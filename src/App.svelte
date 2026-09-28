@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { Clipboard, FilePlus, KeyRound, LoaderCircle, RefreshCw, Settings, Sparkles, X } from 'lucide-svelte';
   import ReplyCard from './components/ReplyCard.svelte';
-  import { clearDraft, defaults, desktop, generate, getConfig, loadDraft, paste, saveDraft, type Config, type Reply } from './lib/api';
+  import { clearDraft, defaults, desktop, generate, getConfig, loadDraft, paste, saveDraft, showLicenses, type Config, type Reply } from './lib/api';
 
   let source = $state('');
   let direction = $state('');
@@ -492,6 +492,12 @@
         </p>
       </div>
       <div class="flex justify-end gap-2 border-t border-line px-4 py-3">
+        <button
+          class="mr-auto h-7 rounded-md px-2 text-[12px] text-muted hover:bg-hover hover:text-fg"
+          data-annotate="button-third-party-licenses"
+          disabled={!desktop}
+          onclick={() => showLicenses().catch((e) => (error = String(e)))}
+        >Third-Party Licenses</button>
         <button class="h-7 rounded-md border border-field-line bg-field px-3 text-[12px] hover:bg-hover" data-annotate="button-settings-done" onclick={() => (settings = false)}>Done</button>
         <button
           class="flex h-7 items-center gap-1.5 rounded-md bg-accent px-3 text-[12px] font-medium text-on-accent hover:bg-accent-hover"
