@@ -3,7 +3,7 @@
 # `pnpm notices` から呼ばれる。依存を足したり上げたりしたら流し直してコミットする
 # (licenses.rs のテストが直接依存を、CI の --check が全体を検査する)。
 #
-# Rust 側は cargo-about (`cargo install cargo-about --locked --features cli`)、
+# Rust 側は cargo-about (版は下の CARGO_ABOUT_VERSION に固定)、
 # 設定は src-tauri/about.toml、書式は src-tauri/about.hbs。
 # npm 側は vite が bundle する runtime だけを node_modules から読む:
 #   - package.json の dependencies
@@ -36,8 +36,16 @@ cd "$(dirname "$0")/.."
 
 OUT="THIRD-PARTY-NOTICES.txt"
 
-if ! cargo about --version >/dev/null 2>&1; then
-  echo "Error: cargo-about is not installed. Run: cargo install cargo-about --locked --features cli" >&2
+# 出力の書式は cargo-about の版で変わりうるので版を固定する。CI (release.yml) はこの行から
+# 版を読んで同じものを入れるので、上げる時はここだけ直して再生成する
+CARGO_ABOUT_VERSION=0.9.2
+INSTALL_HINT="cargo install cargo-about --version $CARGO_ABOUT_VERSION --locked --features cli"
+if ! found=$(cargo about --version 2>/dev/null); then
+  echo "Error: cargo-about is not installed. Run: $INSTALL_HINT" >&2
+  exit 1
+fi
+if [ "$found" != "cargo-about $CARGO_ABOUT_VERSION" ]; then
+  echo "Error: $found found, but the notices are generated with cargo-about $CARGO_ABOUT_VERSION. Run: $INSTALL_HINT" >&2
   exit 1
 fi
 if [ ! -d node_modules ]; then

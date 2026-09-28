@@ -118,7 +118,7 @@ The app bundles open source libraries (Rust crates and JavaScript packages). The
 The file is generated. After adding or upgrading a dependency, regenerate and commit it:
 
 ```bash
-cargo install cargo-about --locked --features cli   # once
+cargo install cargo-about --version 0.9.2 --locked --features cli   # once; the version is pinned in the script
 pnpm install
 pnpm notices        # scripts/generate-third-party-notices.sh
 ```
