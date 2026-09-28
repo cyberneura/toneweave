@@ -79,25 +79,37 @@ for (const [name, base] of deps) {
   const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
   const repo = typeof pkg.repository === "string" ? pkg.repository : pkg.repository?.url;
   // LICENSE.spdx のような SPDX のメタデータは本文ではないので除く
-  const files = fs
-    .readdirSync(dir)
-    .filter((f) => /^(LICEN[CS]E|COPYING|NOTICE)/i.test(f) && !/\.spdx$/i.test(f))
-    .sort();
+  const pick = (d) =>
+    fs
+      .readdirSync(d)
+      .filter((f) => /^(LICEN[CS]E|COPYING|NOTICE)/i.test(f) && !/\.spdx$/i.test(f))
+      .sort()
+      .map((f) => [f, path.join(d, f)]);
+  let files = pick(dir);
+  if (files.length === 0) {
+    // 本文を npm パッケージに同梱していないもの (@tauri-apps/plugin-*) は、配布元の同じ
+    // version の本文を vendor-licenses/<name>@<version>/ に置いて使う。表記と URL だけでは
+    // MIT / Apache-2.0 の本文を配布したことにならないので、無ければ生成を止める。
+    // version をディレクトリ名に含めるのは、依存を上げた時に本文を見直させるため
+    const vendored = path.join("vendor-licenses", `${name}@${pkg.version}`);
+    if (fs.existsSync(vendored)) files = pick(vendored);
+    if (files.length === 0) {
+      console.error(
+        `Error: ${name} ${pkg.version} ships no license text. Put the upstream license files ` +
+          `for this exact version in ${vendored}/ (see AGENTS.md).`,
+      );
+      process.exit(1);
+    }
+  }
   console.log("=".repeat(80));
   console.log(`License: ${pkg.license}`);
   console.log("");
   console.log("Used by:");
   console.log(`  ${name} ${pkg.version}${repo ? ` (${repo})` : ""}`);
   console.log("");
-  if (files.length === 0) {
-    // 本文が同梱されていない package。表記と配布元だけ残す
-    console.log("The package does not ship its license text; see the repository above.");
-    console.log("");
-    continue;
-  }
-  for (const f of files) {
+  for (const [f, file] of files) {
     if (files.length > 1) console.log(`--- ${f} ---`);
-    console.log(fs.readFileSync(path.join(dir, f), "utf8").replace(/\s+$/, ""));
+    console.log(fs.readFileSync(file, "utf8").replace(/\s+$/, ""));
     console.log("");
   }
 }
