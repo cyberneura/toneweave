@@ -408,51 +408,11 @@ jobs:
           }
           rm "$RUNNER_TEMP/certificate.p12"
 
-      # 古い run の「Re-run failed jobs」は、成功済みの draft job を再実行せずに
-      # 当時の release_id を使い回す。その間に別 commit の run が同じ Release を
-      # 公開していると、ここで公開済み Release へ旧 commit の成果物を足してしまう
-      # (publish の再判定が止める時点では既にアップロード済み)。上げる前に、その
-      # Release がまだ draft で、この run の commit を指していることを確かめる。
-      - name: Check the draft release still belongs to this run
-        # Windows ランナーの既定シェルは PowerShell なので、bash を明示しないと
-        # この step だけ ParserError で落ちる (matrix の Windows leg で実際に落ちた)
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_ID: ${{ needs.draft.outputs.release_id }}
-        run: |
-          state=$(gh api "repos/${GH_REPO}/releases/${RELEASE_ID}" --jq '"\(.draft) \(.target_commitish)"')
-          if [ "$state" != "true ${GITHUB_SHA}" ]; then
-            echo "::error::release ${RELEASE_ID} is '${state}', not a draft at ${GITHUB_SHA}. Not uploading."
-            exit 1
-          fi
-
-      # Windows: draft ジョブが用意した draft Release (releaseId) にビルド成果物をアップロードする。
-      # 並列 matrix の片方だけで公開状態にならないよう、全プラットフォーム成功後に
-      # publish ジョブで公開する。releaseId を渡すと tauri-action は Release を
-      # 探しも作りもしないので、tagName / releaseName / releaseDraft は渡さない
-      # (Release の名前と tag は draft ジョブが決める)。
-      # macOS はこれを使わない。tauri-action は build と upload を 1 ステップで行うので、
-      # 上げる前に dmg を公証する隙間が無いため (下の macOS のステップを参照)。
-      # 可変タグ @v0 ではなく commit SHA に固定する (タグが差し替えられて
-      # GITHUB_TOKEN を抜かれるサプライチェーン攻撃を防ぐ)。
-      - name: Build and upload to GitHub Release (draft)
-        if: matrix.platform != 'macos-latest'
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          # tauri CLI を直接叩き、package.json の "tauri" スクリプトを迂回する。
-          # スクリプト側に `APPLE_SIGNING_IDENTITY='...' tauri` のようなインライン
-          # 代入が入ると workflow から渡した env を上書きし、Windows のシェルでは構文エラーになる。
-          tauriScript: pnpm exec tauri
-          releaseId: ${{ needs.draft.outputs.release_id }}
-          args: ${{ matrix.args }}
-
-      # macOS: package.json の "tauri" スクリプトを迂回する理由は上の Windows と同じ。
+      # macOS: package.json の "tauri" スクリプトを迂回する理由は下の Windows と同じ。
       # APPLE_* を渡すと tauri CLI が .app に Developer ID 署名 + 公証 + staple を行い、
       # dmg にも署名する。dmg の公証はしないので次のステップで行う。
+      # Windows の tauri-action と同じく、上げる直前に下の draft の確認を挟むため、
+      # macOS はビルドと公証を確認より前に行う。
       - name: Build (macOS, sign and notarize the app)
         if: matrix.platform == 'macos-latest'
         env:
@@ -507,6 +467,48 @@ jobs:
           xcrun stapler validate "$DMG"
           spctl --assess --type open --context context:primary-signature -vv "$DMG"
           echo "dmg=$DMG" >> "$GITHUB_OUTPUT"
+
+      # 古い run の「Re-run failed jobs」は、成功済みの draft job を再実行せずに
+      # 当時の release_id を使い回す。その間に別 commit の run が同じ Release を
+      # 公開していると、ここで公開済み Release へ旧 commit の成果物を足してしまう
+      # (publish の再判定が止める時点では既にアップロード済み)。上げる前に、その
+      # Release がまだ draft で、この run の commit を指していることを確かめる。
+      - name: Check the draft release still belongs to this run
+        # Windows ランナーの既定シェルは PowerShell なので、bash を明示しないと
+        # この step だけ ParserError で落ちる (matrix の Windows leg で実際に落ちた)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_ID: ${{ needs.draft.outputs.release_id }}
+        run: |
+          state=$(gh api "repos/${GH_REPO}/releases/${RELEASE_ID}" --jq '"\(.draft) \(.target_commitish)"')
+          if [ "$state" != "true ${GITHUB_SHA}" ]; then
+            echo "::error::release ${RELEASE_ID} is '${state}', not a draft at ${GITHUB_SHA}. Not uploading."
+            exit 1
+          fi
+
+      # Windows: draft ジョブが用意した draft Release (releaseId) にビルド成果物をアップロードする。
+      # 並列 matrix の片方だけで公開状態にならないよう、全プラットフォーム成功後に
+      # publish ジョブで公開する。releaseId を渡すと tauri-action は Release を
+      # 探しも作りもしないので、tagName / releaseName / releaseDraft は渡さない
+      # (Release の名前と tag は draft ジョブが決める)。
+      # macOS はこれを使わない。tauri-action は build と upload を 1 ステップで行うので、
+      # 上げる前に dmg を公証する隙間が無いため (上下の macOS のステップを参照)。
+      # 可変タグ @v0 ではなく commit SHA に固定する (タグが差し替えられて
+      # GITHUB_TOKEN を抜かれるサプライチェーン攻撃を防ぐ)。
+      - name: Build and upload to GitHub Release (draft)
+        if: matrix.platform != 'macos-latest'
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # tauri CLI を直接叩き、package.json の "tauri" スクリプトを迂回する。
+          # スクリプト側に `APPLE_SIGNING_IDENTITY='...' tauri` のようなインライン
+          # 代入が入ると workflow から渡した env を上書きし、Windows のシェルでは構文エラーになる。
+          tauriScript: pnpm exec tauri
+          releaseId: ${{ needs.draft.outputs.release_id }}
+          args: ${{ matrix.args }}
 
       # draft Release に tag ではなく ID で上げる (Windows の releaseId と同じ)。
       - name: Upload the dmg to the draft release (macOS)
