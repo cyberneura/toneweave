@@ -99,7 +99,7 @@ rm -rf $ICONS/android $ICONS/ios
 
 - The version in `src-tauri/tauri.conf.json` on `main` decides the release. `release.yml` runs on every push to `main` and only builds when that version is unreleased and newer than the latest release.
 - Bump the version only with `pnpm release` as its own commit. Never mix a version bump into a feature change: merging it publishes a release.
-- CI signs with Developer ID and notarizes the macOS build. The build fails if any of these repository secrets is missing: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`.
+- CI signs with Developer ID and notarizes the macOS build: the tauri CLI notarizes the `.app`, then `notarytool` notarizes and staples the `.dmg` before it is uploaded to the draft by release ID. Windows still builds and uploads through tauri-action. The build fails if any of these repository secrets is missing: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`.
 - Keep `signingIdentity: "-"` in `tauri.conf.json` (ad-hoc for local builds; CI overrides it through env).
 - The Homebrew cask is `Casks/toneweave.rb` in `cyberneura/homebrew-tap`. The tap's own workflow updates its `version` and `sha256` every hour from the latest release. This repository never pushes to the tap.
 - Never use "Re-run failed jobs" on an older run once a newer run for the same version exists: the old run would publish its own (older) commit's build. Push a fix, or bump the version, and let a fresh run do it.
