@@ -2,6 +2,8 @@
 
 Desktop app that drafts email replies with an LLM. Paste the email you received, say how you want to reply, and Toneweave writes reply drafts in your voice. It never sends email.
 
+Website: https://www.cyberneura.com/app/toneweave
+
 ## Install
 
 macOS (Apple Silicon / Intel):
