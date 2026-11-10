@@ -82,18 +82,15 @@ The default model is `gpt-5.6-terra`. Defaults are defined in both `src-tauri/sr
 
 GPT-5-family models reject `temperature` and `max_tokens`. Do not add them to the request in `ai.rs`.
 
-## App icon
+## macOS app icon
 
-Masters are in `resources/app-icons/`: `toneweave-mac-icon.png` (10% margin, macOS only) and `toneweave-favicon.png` (no margin, everything else). `pnpm tauri icon` overwrites all of `src-tauri/icons/`, so regenerate in this order:
-
-```bash
-ICONS=src-tauri/icons
-pnpm tauri icon "$PWD/resources/app-icons/toneweave-mac-icon.png"
-cp $ICONS/icon.icns /tmp/icon.icns
-pnpm tauri icon "$PWD/resources/app-icons/toneweave-favicon.png"
-cp /tmp/icon.icns $ICONS/icon.icns
-rm -rf $ICONS/android $ICONS/ios
-```
+Run `bash scripts/generate-macos-icons.sh` with Xcode on macOS. Fixed artwork,
+layout measurements, size-specific sources and the verification command are in
+`resources/app-icons/README.md`. Small @1x backgrounds reach the canvas edges;
+the glyph fits inside the central 80%. Larger backgrounds have 10% outer margins.
+Do not replace the generated ICNS with `tauri icon` / `iconutil`: preserve the
+ARGB small entries and the matching Assets.car / CFBundleIconName registration.
+Native rendering is verified by `.github/workflows/macos-icons.yml`.
 
 ## Release
 
